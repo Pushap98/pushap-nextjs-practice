@@ -1,9 +1,5 @@
-/**
- * @type {import('next').NextConfig}
- */
-
-const nextConfig = {
-  reactStrictMode: true,
+module.exports = {
+  images: {
+    domains: ["mindsetpalette.com", "i0.wp.com"],
+  },
 };
-
-module.exports = nextConfig;

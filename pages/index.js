@@ -1,33 +1,33 @@
-import config from "@config/config.json";
 import Base from "@layouts/Baseof";
 import ImageFallback from "@layouts/components/ImageFallback";
 import Pagination from "@layouts/components/Pagination";
 import Post from "@layouts/partials/Post";
 import Sidebar from "@layouts/partials/Sidebar";
-import { getListPage, getSinglePage } from "@lib/contentParser";
-import { getTaxonomy } from "@lib/taxonomyParser";
-import dateFormat from "@lib/utils/dateFormat";
-import { sortByDate } from "@lib/utils/sortFunctions";
 import { markdownify } from "@lib/utils/textConverter";
 import Link from "next/link";
 import { FaRegCalendar } from "react-icons/fa";
-const { blog_folder, pagination } = config.settings;
 
+// ---------------------------------
+// WORDPRESS HELPERS
+// ---------------------------------
+const WP_BASE = "https://mindsetpalette.com/wp-json/wp/v2";
+
+async function getWPPosts(limit = 20) {
+  const res = await fetch(`${WP_BASE}/posts?per_page=${limit}&_embed`);
+  return await res.json();
+}
+
+// ---------------------------------
+// HOMEPAGE COMPONENT
+// ---------------------------------
 const Home = ({
   banner,
-  posts,
-  featured_posts,
-  recent_posts,
-  categories,
+  featuredPost,
+  recentPosts = [],
+  allPosts = [],
+  categories = [],
   promotion,
 }) => {
-  // define state
-  const sortPostByDate = sortByDate(posts);
-  const featuredPosts = sortPostByDate.filter(
-    (post) => post.frontmatter.featured
-  );
-  const showPosts = pagination;
-
   return (
     <Base>
       {/* Banner */}
@@ -43,114 +43,118 @@ const Home = ({
 
         <div className="container">
           <div className="row flex-wrap-reverse items-center justify-center lg:flex-row">
-            <div className={banner.image_enable ? "mt-12 text-center lg:mt-0 lg:text-left lg:col-6" : "mt-12 text-center lg:mt-0 lg:text-left lg:col-12"}>
+            <div
+              className={
+                banner.image_enable
+                  ? "mt-12 text-center lg:mt-0 lg:text-left lg:col-6"
+                  : "mt-12 text-center lg:mt-0 lg:text-left lg:col-12"
+              }
+            >
               <div className="banner-title">
                 {markdownify(banner.title, "h1")}
                 {markdownify(banner.title_small, "span")}
               </div>
+
               {markdownify(banner.content, "p", "mt-4")}
+
               {banner.button.enable && (
-                  <Link
-                    className="btn btn-primary mt-6"
-                    href={banner.button.link}
-                    rel={banner.button.rel}
-                  >
-                    {banner.button.label}
-                  </Link>
+                <Link
+                  className="btn btn-primary mt-6"
+                  href={banner.button.link}
+                  rel={banner.button.rel}
+                >
+                  {banner.button.label}
+                </Link>
               )}
             </div>
+
             {banner.image_enable && (
-                <div className="col-9 lg:col-6">
-                  <ImageFallback
-                    className="mx-auto object-contain"
-                    src={banner.image}
-                    width={548}
-                    height={443}
-                    priority={true}
-                    alt="Banner Image"
-                  />
-                </div>
+              <div className="col-9 lg:col-6">
+                <ImageFallback
+                  className="mx-auto object-contain"
+                  src={banner.image}
+                  width={548}
+                  height={443}
+                  alt="Banner Image"
+                  priority
+                />
+              </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Home main */}
+      {/* Main */}
       <section className="section">
         <div className="container">
           <div className="row items-start">
             <div className="mb-12 lg:mb-0 lg:col-8">
-              {/* Featured posts */}
-              {featured_posts.enable && (
+
+              {/* Featured Post */}
+              {featuredPost && (
                 <div className="section">
-                  {markdownify(featured_posts.title, "h2", "section-title")}
+                  <h2 className="section-title">Featured Post</h2>
+
                   <div className="rounded border border-border p-6 dark:border-darkmode-border">
                     <div className="row">
+
+                      {/* Left big featured */}
                       <div className="md:col-6">
-                        <Post post={featuredPosts[0]} />
+                        <Post post={featuredPost} />
                       </div>
-                      <div className="scrollbar-w-[10px] mt-8 max-h-[480px] scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-border dark:scrollbar-track-gray-800 dark:scrollbar-thumb-darkmode-theme-dark md:mt-0 md:col-6">
-                        {featuredPosts
-                          .slice(1, featuredPosts.length)
-                          .map((post, i, arr) => (
-                            <div
-                              className={`mb-6 flex items-center pb-6 ${
-                                i !== arr.length - 1 &&
-                                "border-b border-border dark:border-darkmode-border"
-                              }`}
-                              key={`key-${i}`}
-                            >
-                              {post.frontmatter.image && (
-                                <ImageFallback
-                                  className="mr-3 h-[85px] rounded object-cover"
-                                  src={post.frontmatter.image}
-                                  alt={post.frontmatter.title}
-                                  width={105}
-                                  height={85}
-                                />
-                              )}
-                              <div>
-                                <h3 className="h5 mb-2">
-                                  <Link
-                                    href={`/${blog_folder}/${post.slug}`}
-                                    className="block hover:text-primary"
-                                  >
-                                    {post.frontmatter.title}
-                                  </Link>
-                                </h3>
-                                <p className="inline-flex items-center font-bold">
-                                  <FaRegCalendar className="mr-1.5" />
-                                  {dateFormat(post.frontmatter.date)}
-                                </p>
-                              </div>
+
+                      {/* Right scroll list */}
+                      <div className="scrollbar-w-[10px] mt-8 max-h-[480px] scrollbar-thin md:mt-0 md:col-6">
+                        {recentPosts.slice(1, 5).map((post, i, arr) => (
+                          <div
+                            className={`mb-6 flex items-center pb-6 ${
+                              i !== arr.length - 1 &&
+                              "border-b border-border dark:border-darkmode-border"
+                            }`}
+                            key={post.slug}
+                          >
+                            {post.frontmatter.image && (
+                              <ImageFallback
+                                className="mr-3 h-[85px] rounded object-cover"
+                                src={post.frontmatter.image}
+                                alt={post.frontmatter.title}
+                                width={105}
+                                height={85}
+                              />
+                            )}
+
+                            <div>
+                              <h3 className="h5 mb-2">
+                                <Link
+                                  href={`/posts/${post.slug}`}
+                                  className="block hover:text-primary"
+                                >
+                                  {post.frontmatter.title}
+                                </Link>
+                              </h3>
+
+                              <p className="inline-flex items-center font-bold">
+                                <FaRegCalendar className="mr-1.5" />
+                                {new Date(post.frontmatter.date).toDateString()}
+                              </p>
                             </div>
-                          ))}
+                          </div>
+                        ))}
                       </div>
+
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Promotion */}
-              {promotion.enable && (
-                <Link href={promotion.link} className="section block pt-0">
-                  <ImageFallback
-                    className="h-full w-full"
-                    height="115"
-                    width="800"
-                    src={promotion.image}
-                    alt="promotion"
-                  />
-                </Link>
-              )}
-
               {/* Recent Posts */}
-              {recent_posts.enable && (
+              {recentPosts.length > 0 && (
                 <div className="section pt-0">
-                  {markdownify(recent_posts.title, "h2", "section-title")}
+                  <h2 className="section-title">Recent Posts</h2>
+
                   <div className="rounded border border-border px-6 pt-6 dark:border-darkmode-border">
                     <div className="row">
-                      {sortPostByDate.slice(0, showPosts).map((post) => (
+                      {recentPosts.map((post) => (
                         <div className="mb-8 md:col-6" key={post.slug}>
                           <Post post={post} />
                         </div>
@@ -160,15 +164,13 @@ const Home = ({
                 </div>
               )}
 
-              <Pagination
-                totalPages={Math.ceil(posts.length / showPosts)}
-                currentPage={1}
-              />
+              <Pagination totalPages={1} currentPage={1} />
             </div>
-            {/* sidebar */}
+
+            {/* Sidebar */}
             <Sidebar
               className={"lg:mt-[9.5rem]"}
-              posts={posts}
+              posts={allPosts}
               categories={categories}
             />
           </div>
@@ -178,34 +180,44 @@ const Home = ({
   );
 };
 
-export default Home;
-
-// for homepage data
+// ---------------------------------
+// DATA LOADING (WORDPRESS)
+// ---------------------------------
 export const getStaticProps = async () => {
-  const homepage = await getListPage("content/_index.md");
-  const { frontmatter } = homepage;
-  const { banner, featured_posts, recent_posts, promotion } = frontmatter;
-  const posts = getSinglePage(`content/${blog_folder}`);
-  const categories = getTaxonomy(`content/${blog_folder}`, "categories");
+  const wpPosts = await getWPPosts(20);
 
-  const categoriesWithPostsCount = categories.map((category) => {
-    const filteredPosts = posts.filter((post) =>
-      post.frontmatter.categories.includes(category)
-    );
-    return {
-      name: category,
-      posts: filteredPosts.length,
-    };
-  });
+  // Convert WordPress posts → theme structure
+  const all = wpPosts.map((p) => ({
+    slug: p.slug,
+    frontmatter: {
+      title: p.title.rendered,
+      date: p.date,
+      categories: [],
+      image:
+        p._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+        "/images/default.jpg",
+    },
+    content: p.content.rendered,
+  }));
 
   return {
     props: {
-      banner: banner,
-      posts: posts,
-      featured_posts,
-      recent_posts,
-      promotion,
-      categories: categoriesWithPostsCount,
+      banner: {
+        title: "Welcome to Mindset Palette",
+        title_small: "",
+        content: "",
+        image_enable: false,
+        button: { enable: false },
+      },
+
+      featuredPost: all[0] || null,
+      recentPosts: all,
+      allPosts: all,
+      categories: [],
+      promotion: { enable: false },
     },
+    revalidate: 60,
   };
 };
+
+export default Home;
