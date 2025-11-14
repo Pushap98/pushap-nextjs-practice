@@ -81,3 +81,4 @@ Copyright (c) 2019 - Present, Designed & Developed by [statichunt](https://stati
 **Code License:** Released under the [MIT](https://github.com/statichunt/geeky-nextjs/blob/main/LICENSE) license.
 
 **Image license:** The images are only for demonstration purposes. They have their license, we don't have permission to share those images.
+# pushap-nextjs-practice
